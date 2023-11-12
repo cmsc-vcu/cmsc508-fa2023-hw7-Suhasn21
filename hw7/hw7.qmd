@@ -1,7 +1,7 @@
 ---
 title: Homework 7 - Creating a resume database
-author: (your name goes here!)
-date: last-modified
+author: Suhas Narayanan
+date: 11-12-23
 format:
     html:
         theme: cosmo
@@ -10,11 +10,18 @@ format:
         code-copy: true
 ---
 
-(include a brief description of what is in this document)
+The document is split into sections, each with a specific purpose:
 
-(Please clean up any comments that I included.  This is a scaffold document.)
+Section 1 - Drops existing database tables if they exist, with foreign key checks turned off to prevent errors during the drop process.
 
-GITHUB URL:  <your URL goes here!>
+Section 2 to Section 10 - Includes SQL statements for creating and populating database tables for skills, people, peopleskills, roles, and peopleroles. These sections lay out the structure and relationships of the database and provide data for testing and usage.
+
+Section 11 - Contains various SQL query examples to retrieve data from the database. These examples demonstrate how to query the database for specific information, such as listing skill names, fetching details of people with a particular role, or finding unused skills or roles.
+The Python code uses libraries like pandas, sqlalchemy, and IPython to establish a connection to a MySQL database, execute SQL queries, and display the results. The environment variables are loaded from a .env file, which is a common practice for managing configuration and sensitive information.
+
+
+
+GITHUB URL:  <https://github.com/cmsc-vcu/cmsc508-fa2023-hw7-Suhasn21>
 
 ```{python}
 #| eval: true
@@ -92,30 +99,105 @@ except Exception as e:
 
 ## Overview and description
 
-(briefly describe the project and the database)
+The objective of this assignment is to demonstrate proficiency in SQL through the creation, population, and querying of a relational database.
+
+The database itself is structured to hold information about individuals (people), their skills (skills), the roles they may occupy (roles), and the specific skills each person has (peopleskills). There is also a table that maps people to their roles (peopleroles).
+
+Each table is intended to serve a specific function within the database. The sample queries provided in the document are practical examples of how to extract meaningful information from this dataset, such as finding all people with a certain skill or role, listing unused skills, and identifying people without any registered skills. The queries are designed to be run in a Jupyter notebook environment, using Python to connect to and interact with the MySQL database.
 
 ## Crows-foot diagram
-
-(add a description of the diagram and what the reader is seeing.)
+The Crow's foot notation indicates that each person can have multiple skills and roles, and each skill or role can be associated with multiple people. The people_id and skills_id fields in the PEOPLESKILLS table, as well as the people_id and roles_id fields in the PEOPLESROLES table, are foreign keys that reference the primary keys in their respective entity tables.
 
 ```{mermaid}
 %%| echo: false
 erDiagram
-    CUSTOMER ||--o{ ORDER : places
-    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
-    CUSTOMER{
-        int id
-        string first_name
-        string last_name
+    PEOPLE ||--o{ PEOPLESKILLS : "has"
+    SKILLS ||--o{ PEOPLESKILLS : "acquired by"
+    PEOPLE ||--o{ PEOPLESROLES : "assumes"
+    ROLES ||--o{ PEOPLESROLES : "assigned to"
+    
+    PEOPLE{
+        int people_id PK "Primary Key"
+        varchar first_name "Nullable"
+        varchar last_name "Not Nullable"
+        varchar email "Nullable"
+        varchar linkedin_url "Nullable"
+        varchar headshot_url "Nullable"
+        varchar discord_handle "Nullable"
+        text brief_bio "Nullable, Text"
+        date date_joined "Not Nullable"
     }
-    DELIVERY-ADDRESS {
-        int id
+    SKILLS{
+        int skills_id PK "Primary Key"
+        varchar skills_name "Not Nullable"
+        varchar skills_description "Not Nullable"
+        varchar skills_tag "Not Nullable"
+        varchar skills_url "Nullable"
+        varchar skills_time_commitment "Nullable"
+    }
+    PEOPLESKILLS{
+        int peopleskills_id PK "Primary Key"
+        int skills_id FK "Foreign Key"
+        int people_id FK "Foreign Key"
+        date date_acquired "Not Nullable"
+    }
+    ROLES{
+        int roles_id PK "Primary Key"
+        varchar roles_name "Not Nullable"
+        int roles_sort_priority "Not Nullable"
+    }
+    PEOPLESROLES{
+        int peopleroles_id PK "Primary Key"
+        int people_id FK "Foreign Key"
+        int role_id FK "Foreign Key"
+        date date_assigned "Not Nullable"
     }
 ```
 
 ## Examples of data in the database
 
-For the people, skills, and roles tables, provide a description of each table and it's contents. Then provide a listing of the entire table.
+people Table
+
+The people table stores information about individuals. It includes personal information, contact details, and a brief biography. The date_joined field records when the person was added to the database.
+
+Fields in the people table:
+
+people_id: A unique identifier for each person (auto-incremented integer).
+first_name: The person's first name (string, nullable).
+last_name: The person's last name (string, non-nullable).
+email: The person's email address (string, nullable).
+linkedin_url: URL to the person's LinkedIn profile (string, nullable).
+headshot_url: URL to the person's headshot image (string, nullable).
+discord_handle: The person's Discord username (string, nullable).
+brief_bio: A short biography of the person (text, nullable).
+date_joined: The date the person joined or was added to the database (date, non-nullable).
+skills Table
+The skills table contains a list of skills that can be acquired by people. It includes a description, category tag, and potential links to resources.
+
+Skills Table
+
+The skills table stores information about skills. It includes skill name, category a link, time committed to the skill.
+
+Fields in the skills table:
+
+skills_id: A unique identifier for each skill (auto-incremented integer).
+skills_name: The name of the skill (string, non-nullable).
+skills_description: A description of the skill (string, non-nullable).
+skills_tag: A category tag for grouping the skill (string, non-nullable).
+skills_url: A URL to a resource for learning more about the skill (string, nullable).
+skills_time_commitment: An estimate of the time commitment required to learn the skill (string, nullable).
+roles Table
+The roles table defines various roles that a person can assume. It includes a sort priority to order these roles meaningfully.
+
+Role Table
+
+The role table stores information about roles. It includes id, role name, and role priority
+
+Fields in the roles table:
+
+roles_id: A unique identifier for each role (auto-incremented integer).
+roles_name: The name of the role (string, non-nullable).
+roles_sort_priority: An integer that helps sort roles according to their priority or sequence (integer, non-nullable).
 
 ### People table
 
@@ -149,7 +231,18 @@ Below is a list of data in the *skills* table.
 ```{python}
 #| echo: false
 #| eval: true
-
+sql = f"""
+select * from skills;
+"""
+## Add code to list roles table here
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
 ## Add code to list roles table here
 ```
 
@@ -162,7 +255,18 @@ Below is a list of data in the *roles* table.
 ```{python}
 #| echo: false
 #| eval: true
-
+sql = f"""
+select * from roles;
+"""
+## Add code to list roles table here
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
 ## Add code to list roles table here
 ```
 
@@ -173,16 +277,28 @@ Let's explore the database!
 
 # List skill names, tags, and descriptions ordered by name
 
-(here a sample query)
+
 
 ```{python}
+#| echo: false
+#| eval: true
 sql = f"""
-select * from people
+SELECT skills_name, skills_tag, skills_description
+FROM skills
+ORDER BY skills_name ASC;
 """
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
 ```
 
 
-(and here is a sample result from the query)
+
 
 ```{python}
 #| echo: false
@@ -200,30 +316,168 @@ df
 
 
 ### List people names and email addresses ordered by last_name
-
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT first_name, last_name, email
+FROM people
+ORDER BY last_name ASC;
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+```
 
 ### List skill names of Person 1
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT s.skills_name
+FROM skills s
+JOIN peopleskills ps ON s.skills_id = ps.skills_id
+WHERE ps.people_id = 1;
 
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+```
 
 ### List people names with Skill 6
-
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT p.first_name, p.last_name
+FROM people p
+JOIN peopleskills ps ON p.people_id = ps.people_id
+WHERE ps.skills_id = 6;
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+```
 
 ### List people with a DEVELOPER role
-
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT p.first_name, p.last_name
+FROM people p
+JOIN peopleroles pr ON p.people_id = pr.people_id
+JOIN roles r ON pr.role_id = r.roles_id
+WHERE r.roles_name = 'Developer';
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+```
 
 ### List names and email addresses of people without skills
-
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT p.first_name, p.last_name, p.email
+FROM people p
+LEFT JOIN peopleskills ps ON p.people_id = ps.people_id
+WHERE ps.skills_id IS NULL;
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+```
 
 ### List names and tags of unused skills
-
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT s.skills_name, s.skills_tag
+FROM skills s
+LEFT JOIN peopleskills ps ON s.skills_id = ps.skills_id
+WHERE ps.people_id IS NULL;
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+```
 
 ### List people names and skill names with the BOSS role
-
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT DISTINCT p.first_name, p.last_name, s.skills_name
+FROM people p
+JOIN peopleroles pr ON p.people_id = pr.people_id
+JOIN roles r ON pr.role_id = r.roles_id AND r.roles_name = 'Boss'
+LEFT JOIN peopleskills ps ON p.people_id = ps.people_id
+LEFT JOIN skills s ON ps.skills_id = s.skills_id;
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+```
 
 ### List ids and names of unused roles
-
+```{python}
+#| echo: false
+#| eval: true
+sql = f"""
+SELECT r.roles_id, r.roles_name
+FROM roles r
+LEFT JOIN peopleroles pr ON r.roles_id = pr.role_id
+WHERE pr.people_id IS NULL;
+"""
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+```
 
 ## Reflection
 
-(Write a paragraph expressing your thoughts, feelings, and insights about your experience with this assignment.  Pause and breath before writing - I'm trying to encourage critical thinking and self-awareness while allowing you to explore the connections between theory and practice. And yes, delete this paragraph.)
-
+Working through this database assignment has been an enlightening journey into the practical application of relational database theory. It provided a hands-on experience that bridged the gap between abstract concepts and real-world database design. By constructing a database schema from the ground up, defining relationships, and populating tables with creatively devised entries, I gained a deeper understanding of how database normalization principles underpin efficient data organization. This assignment also underscored the importance of precision in naming conventions and the foresight required in planning for scalability. Additionally, the task of manually assigning IDs to certain tables before switching to auto-increment highlighted the transition from manual control to database-managed processes.The requirement to consider NULL handling prompted me to think critically about the nature of data and its representation. Overall, the assignment was a celar path  of database administration looks like, offering a narrative on the meticulous care and strategic thinking that underpin the development of robust data management systems.
